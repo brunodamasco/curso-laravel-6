@@ -22,8 +22,11 @@ class ProductController extends Controller
     public function index()
     {
         $teste = 123;
+        $teste2 = 312;
+        $teste3 = [1, 2, 3, 4, 5];
+        $products = ['Tv', 'Geladeira', 'Forno', 'Sofá'];
 
-        return view('admin/pages/products/index', compact('teste'));
+        return view('admin/pages/products/index', compact('teste', 'teste2', 'teste3', 'products'));
         //return view('teste', compact('teste'));
     }
 
@@ -34,7 +37,7 @@ class ProductController extends Controller
      */
     public function create()
     {
-        //
+        return view('admin.pages.products.create');
     }
 
     /**
@@ -45,7 +48,20 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        // dd($request->all());                             mais usados
+        // dd($request->only(['name', 'description']));
+        // dd($request->name);                              mais usados
+        // dd($request->has('name'));
+        // dd($request->input('teste', 'default'));
+        // dd($request->except('_token', 'name'));
+
+        if ($request->file('photo')->isValid()) {
+            // dd($request->photo->extension()); // extensão do arquivo (ex: png, jpg)
+            // dd($request->photo->getClientOriginalName()); // nome do arquivo
+            // dd($request->file('photo')->store('products')); // fazer upload de arquivos
+            $nameFile = $request->name . '.' . $request->photo->extension();
+            dd($request->file('photo')->storeAs('products', $nameFile));
+        }
     }
 
     /**
@@ -67,7 +83,7 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        //
+        return view('admin.pages.products.edit', compact('id'));
     }
 
     /**
@@ -79,7 +95,7 @@ class ProductController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        dd("Editando o produto {$id}");
     }
 
     /**
