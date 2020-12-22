@@ -4,8 +4,8 @@ use App\Http\Controllers\Admin\TesteController;
 use App\Http\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
 
-Route::any('products/search', 'ProductController@search')->name('products.search');
-Route::resource('products', 'ProductController');
+Route::any('products/search', 'ProductController@search')->name('products.search')->middleware('auth');
+Route::resource('products', 'ProductController')->middleware('auth');
 
 /*
 Route::delete('products/{id}', 'ProductController@destroy')->name('products.destroy');
@@ -39,3 +39,8 @@ Route::get('redirect2', function () {
 Route::get('/redirect3/{flag}', function ($flag) {
     return "Produtos da categoria: {$flag}";
 });
+
+Auth::routes();
+//Auth::routes(['register' => false]);
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
