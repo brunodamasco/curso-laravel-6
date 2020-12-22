@@ -4,49 +4,48 @@
 
 @section('content')
     <h1>Exibindo os produtos</h1>
-    <a href="{{ route('products.create') }}">Cadastrar</a>
-    <hr>
-
-    @component('admin.components.card')
-        @slot('title')
-        <h1>Título Card</h1>
-        @endslot
-        Um card de exemplo
-    @endcomponent
+    <a href="{{ route('products.create') }}" class="btn btn-primary">Cadastrar</a>
 
     <hr>
 
-    @if (isset($products))
-        @foreach ($products as $product)
-            <p>{{ $product }}</p>
-        @endforeach
+    <form action="{{ route('products.search') }}" method="POST" class="form form-inline">
+        @csrf
+        <input type="text" name="filter" placeholder="Pesquisar" class="form-control" value="{{ $filters['filter'] ?? ''}}">
+        <button type="submit" class="btn btn-info">Pesquisar</button>
+    </form>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th width="100">Imagem</th>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th width="100">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($products as $product)
+                <tr>
+                    <td>
+                        @if ($product->image)
+                            <img src="{{ url("storage/{$product->image}") }}" alt="{{ $product->name }}" style="max-width: 100px;">
+                        @endif
+                    </td>
+                    <td>{{ $product->name }}</td>
+                    <td>{{ $product->price }}</td>
+                    <td>
+                        <a href="{{ route('products.edit', $product->id) }}">Editar</a>
+                        <a href="{{ route('products.show', $product->id) }}">Detalhes</a>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    @if (isset($filters))
+        {!! $products->appends($filters)->links() !!}
+    @else
+        {!! $products->links() !!}
     @endif
 
-    <hr>
-
-    @forelse ($products as $product)
-        <p>{{ $product }}</p>
-    @empty
-        <p>Não existem produtos cadastrados.</p>
-    @endforelse
-
-    <hr>
-
-    @include('admin.includes.alerts', ['content' => 'Alerta de preços de produtos'])
-
-    <hr>
-
-    {{ $teste }}
 @endsection
-
-@push('styles')
-    <style>
-        .last {background: #CCC;}
-    </style>
-@endpush
-
-@push('scripts')
-    <script>
-        document.body.style.background = '#999'
-    </script>
-@endpush

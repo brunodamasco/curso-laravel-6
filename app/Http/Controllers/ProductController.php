@@ -2,16 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreUpdateProductRequest;
+use App\Models\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+use function PHPUnit\Framework\returnSelf;
 
 class ProductController extends Controller
 {
 
     protected $request;
+    private $repository;
 
-    public function __construct(Request $request)
+    public function __construct(Request $request, Product $product)
     {
         $this->request = $request;
+        $this->repository = $product;
     }
 
     /**
@@ -21,12 +28,11 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $teste = 123;
-        $teste2 = 312;
-        $teste3 = [1, 2, 3, 4, 5];
-        $products = ['Tv', 'Geladeira', 'Forno', 'Sofá'];
+        $products = Product::latest()->paginate();
 
-        return view('admin/pages/products/index', compact('teste', 'teste2', 'teste3', 'products'));
+        return view('admin/pages/products/index', [
+            'products' => $products,
+        ]);
         //return view('teste', compact('teste'));
     }
 
@@ -43,34 +49,23 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\StoreUpdateProductRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+
+    public function store(StoreUpdateProductRequest $request)
     {
+        $data = $request->only('name', 'description', 'price');
 
-        $request->validate([
-            'name' => 'required|min:3|max:255',
-            'description' => 'nullable|min:3|max:10000',
-            'photo' => 'required|image',
-        ]);
+        if ($request->hasFile('image') && $request->image->isValid()) {
+            $imagePath = $request->image->store('products');
 
-        dd('OK');
-
-        // dd($request->all());                             mais usados
-        // dd($request->only(['name', 'description']));
-        // dd($request->name);                              mais usados
-        // dd($request->has('name'));
-        // dd($request->input('teste', 'default'));
-        // dd($request->except('_token', 'name'));
-
-        if ($request->file('photo')->isValid()) {
-            // dd($request->photo->extension()); // extensão do arquivo (ex: png, jpg)
-            // dd($request->photo->getClientOriginalName()); // nome do arquivo
-            // dd($request->file('photo')->store('products')); // fazer upload de arquivos
-            $nameFile = $request->name . '.' . $request->photo->extension();
-            dd($request->file('photo')->storeAs('products', $nameFile));
+            $data['image'] = $imagePath;
         }
+
+        $this->repository->create($data);
+
+        return redirect()->route('products.index');
     }
 
     /**
@@ -81,7 +76,13 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        return "Detalhes do produto {$id}";
+        //$product = Product::where('id', $id)->first();
+        if (!$product = $this->repository->find($id))
+            return redirect()->back();
+
+        return view('admin.pages.products.show', [
+            'product' => $product
+        ]);
     }
 
     /**
@@ -92,19 +93,39 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        return view('admin.pages.products.edit', compact('id'));
+        if (!$product = $this->repository->find($id))
+            return redirect()->back();
+
+        return view('admin.pages.products.edit', compact('product'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\StoreUpdateProductRequest  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(StoreUpdateProductRequest $request, $id)
     {
-        dd("Editando o produto {$id}");
+        if (!$product = $this->repository->find($id))
+            return redirect()->back();
+
+        $data = $request->all();
+
+        if ($request->hasFile('image') && $request->image->isValid()) {
+
+            if ($product->image && Storage::exists($product->image)) {
+                Storage::delete($product->image);
+            }
+
+            $imagePath = $request->image->store('products');
+            $data['image'] = $imagePath;
+        }
+
+        $product->update($data);
+
+        return redirect()->route('products.index');
     }
 
     /**
@@ -115,6 +136,31 @@ class ProductController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $product = $this->repository->where('id', $id)->first();
+        if (!$product)
+            return redirect()->back();
+
+        if ($product->image && Storage::exists($product->image)) {
+            Storage::delete($product->image);
+        }
+
+        $product->delete();
+
+        return redirect()->route('products.index');
+    }
+
+    /**
+     * Search Products
+     */
+    public function search(Request $request)
+    {
+        $filters = $request->except('_token');
+
+        $products = $this->repository->search($request->filter);
+
+        return view('admin/pages/products/index', [
+            'products' => $products,
+            'filters' => $filters,
+        ]);
     }
 }
